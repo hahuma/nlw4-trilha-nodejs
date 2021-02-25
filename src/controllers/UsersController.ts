@@ -1,7 +1,6 @@
 import { Request, Response } from 'express'
-import { getRepository } from 'typeorm'
-
-import User from '../models/User'
+import { getCustomRepository } from 'typeorm'
+import { UsersRepository } from '../repositories/UsersRepository'
 
 class UserController {
 	async create(request: Request, response: Response) {
@@ -11,7 +10,7 @@ class UserController {
 				email
 			} = request.body
 
-			const userRepository = getRepository(User)
+			const userRepository = getCustomRepository(UsersRepository)
 
 			const hasUser = await userRepository.findOne({ email })
 			if(hasUser) {
@@ -27,8 +26,9 @@ class UserController {
 
 			await userRepository.save(user)
 
-			return response.json(user)
+			return response.status(201).json(user)
 		} catch(error) {
+			console.log(error)
 			return response.status(500).json({
 				error: error.message
 			})
