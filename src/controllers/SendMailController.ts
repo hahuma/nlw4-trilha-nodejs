@@ -1,15 +1,22 @@
 import { Request, Response } from 'express';
 import { resolve } from 'path'
 import { getCustomRepository } from 'typeorm';
+
 import { UsersRepository } from '../repositories/UsersRepository';
 import { SurveysUsersRepository } from '../repositories/SurveysUsersRepository';
 import { SurveysRepository } from '../repositories/SurveysRepository';
 
 import sendMailService from '../services/sendMailService'
 
+import { AppError } from '../helpers/Errors';
+import { sendMailSchema } from '../helpers/schemas';
+import { validateSchema } from '../helpers/Validations';
+
 class SendMailController {
 
 	async exec(request: Request, response: Response) {
+
+		await validateSchema(sendMailSchema, request.body)
 		const {
 			email,
 			survey_id
@@ -21,21 +28,17 @@ class SendMailController {
 
 		const user = await userRepository.findOne({email})
 		if(!user) {
-			return response.status(400).json({
-				error: 'User does not exists!'
-			})
+			throw new AppError('User does not exists!')
 		}
 		const survey = await surveyRepository.findOne({id: survey_id})
 		if(!survey) {
-			return response.status(400).json({
-				error: 'Survey does not exists!'
-			})
+			throw new AppError('Survey does not exists!')
 		}
 
 		const npsPath = resolve(__dirname, '..', 'views', 'emails', 'npsMail.hbs')
 		const mailInfo = {
 			name: user.name,
-			user_id: user.id,
+			id: '',
 			title: survey.title,
 			description: survey.description,
 			subject: survey.title,
@@ -43,11 +46,17 @@ class SendMailController {
 		}
 
 		const surveyUserAlreadyExists = await surveyUserRepository.findOne({
-			where:[{user_id: user.id}, {value: null}],
+			where:
+				[{
+					user_id: user.id,
+					survey_id,
+					value: null
+				}],
 			relations: ['user', 'survey']
 		})
 
 		if(surveyUserAlreadyExists) {
+			mailInfo.id = surveyUserAlreadyExists.id
 			await sendMailService.exec(email, mailInfo, npsPath)
 			return response.json(surveyUserAlreadyExists)
 		}
@@ -56,6 +65,8 @@ class SendMailController {
 
 		await surveyUserRepository.save(surveyUser)
 
+
+		mailInfo.id = surveyUser.id
 		await sendMailService.exec(email, mailInfo, npsPath)
 
 		return response.status(201).json(surveyUser)

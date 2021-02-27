@@ -9,6 +9,12 @@ describe('Surveys', () => {
 		await connection.runMigrations()
 	})
 
+	afterAll(async () => {
+		const connection = await createConnection()
+		connection.dropDatabase()
+		connection.close()
+	})
+
 	it('Should create a new user with given email and name', async () => {
 		const survey = {
 			title: faker.lorem.sentence(),

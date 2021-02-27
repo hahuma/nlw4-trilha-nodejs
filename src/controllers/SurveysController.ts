@@ -1,9 +1,14 @@
 import { Request, Response } from 'express'
 import { getCustomRepository } from 'typeorm'
 import { SurveysRepository } from '../repositories/SurveysRepository'
+import { validateSchema } from '../helpers/Validations'
+import { surveySchema } from '../helpers/schemas';
 
 class SurveysController {
 	async create(request: Request, response: Response) {
+
+		await validateSchema(surveySchema, request.body)
+
 		const {
 			title,
 			description

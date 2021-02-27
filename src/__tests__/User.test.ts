@@ -16,6 +16,12 @@ describe('Users', () => {
 		}
 	})
 
+	afterAll(async () => {
+		const connection = await createConnection()
+		connection.dropDatabase()
+		connection.close()
+	})
+
 	it('Should create a new user with given email and name', async () => {
 		const response = await
 			request(app)
